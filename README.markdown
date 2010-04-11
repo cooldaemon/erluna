@@ -13,6 +13,6 @@ erluna is Lua bindings for Erlang.
     {ok, 2} = Lua:get_global("lua_value1"),
     ok = Lua:eval("function lua_fun(x) return x * 2 end"),
     ok = Lua:eval("lua_value2 = lua_fun(5)"),
-    10 = Lua:get_global("lua_value2"),
+    {ok, 10} = Lua:get_global("lua_value2"),
     Lua:stop().
 

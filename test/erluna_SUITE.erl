@@ -27,20 +27,20 @@ all() -> [testcase1].
 testcase1() -> [].
 testcase1(_Conf) ->
   {ok, Lua} = erluna:start(),
+  
+  ?assertMatch(Lua:eval("lua_value1 = 1 + 1"), ok, case1),
+  ?assertMatch(Lua:get_global("lua_value1"), {ok, 2}, case2),
 
-  Lua:eval("lua_value1 = 1 + 1"),
-  ?assertEqual(Lua:get_global("lua_value1"), {ok, 2}, case1),
+  ?assertMatch(Lua:eval("lua_value2 = 1.1 + 2.2"), ok, case3),
+  ?assertMatch(Lua:get_global("lua_value2"), {ok, 3.3000000000000003}, case4),
 
-  Lua:eval("lua_value2 = 1.1 + 2.2"),
-  ?assertEqual(Lua:get_global("lua_value2"), {ok, 3.3000000000000003}, case1),
+  ?assertMatch(Lua:eval("lua_value3 = [[foo]]"), ok, case5),
+  ?assertMatch(Lua:get_global("lua_value3"), {ok, "foo"}, case6),
 
-  Lua:eval("lua_value3 = [[foo]]"),
-  ?assertEqual(Lua:get_global("lua_value3"), {ok, "foo"}, case2),
+  ?assertMatch(Lua:eval("function lua_fun(x) return x * 2 end"), ok, case7),
+  ?assertMatch(Lua:eval("lua_value4 = lua_fun(5)"), ok, case8),
+  ?assertMatch(Lua:get_global("lua_value4"), {ok, 10}, case9),
 
-  Lua:eval("function lua_fun(x) return x * 2 end"),
-  Lua:eval("lua_value4 = lua_fun(5)"),
-  ?assertEqual(Lua:get_global("lua_value4"), {ok, 10}, case3),
-
-  Lua:stop(),
+  ?assertMatch(Lua:stop(), ok, case10),
   ok.
 
