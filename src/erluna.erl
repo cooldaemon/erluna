@@ -9,11 +9,11 @@
 %%    {ok, Lua} = erluna:start(),
 %%
 %%    Lua:eval("lua_value1 = 1 + 1"),
-%%    2 = Lua:get_global("lua_value1"),
+%%    {ok, 2} = Lua:get_global("lua_value1"),
 %%
 %%    Lua:eval("function lua_fun(x) return x * 2 end"),
 %%    Lua:eval("lua_value2 = lua_fun(5)"),
-%%    10 = Lua:get_global("lua_value2"),
+%%    {ok, 10} = Lua:get_global("lua_value2"),
 %%
 %%    Lua:stop().
 %%  '''
@@ -38,8 +38,7 @@
 -export([eval/2, async_eval/2]).
 %-export([eval_file/2, async_eval_file/2]).
 %-export([apply/3]).
--export([get_global/2]).
--export([test/0]).
+-export([get_global/2, async_get_global/2]).
 
 -include("erluna.hrl").
 
@@ -51,10 +50,17 @@ start() ->
   end.
 
 driver_dir() ->
-  filename:join([
-      filename:dirname(code:which(?MODULE)),
-      "..", "priv", "lib"
-  ]).
+  Path = lists:map(
+    fun (Path) -> filename:join([Path, "..", "priv", "lib"]) end,
+    code:get_path()
+  ),
+  case file:path_open(Path, ?DRIVER_NAME ++ ".so", [read]) of
+    {ok, IoDevice, FullName} ->
+      file:close(IoDevice),
+      filename:dirname(FullName);
+    _Other ->
+      "./"
+  end.
 
 open() ->
   {ok, #erluna{port = open_port({spawn, ?DRIVER_NAME}, [])}}.
@@ -74,25 +80,12 @@ async_eval(Source, Lua) ->
   ).
 
 get_global(Name, Lua) ->
-  async_global(Name, Lua),
-  receive
-    {ok, {number, Number}} ->
-      {ok, binary_to_term(list_to_binary(Number))};
-    Result ->
-      Result
-  end.
+  async_get_global(Name, Lua),
+  receive Result -> Result end.
 
-async_global(Name, Lua) ->
+async_get_global(Name, Lua) ->
   erlang:port_command(
     Lua#erluna.port,
     term_to_binary({?COMMAND_GET_GLOBAL, Name})
   ).
-
-test() ->
-  {ok, Lua} = start(),
-  io:fwrite("result(~p)~n", [Lua:eval("value = 500 + 1")]),
-  io:fwrite("result(~p)~n", [Lua:get_global("value")]),
-  io:fwrite("result(~p)~n", [Lua:eval("value2 = [[foo]]")]),
-  io:fwrite("result(~p)~n", [Lua:get_global("value2")]),
-  Lua:stop().
 

@@ -20,7 +20,8 @@ static void set_ok(async_erluna_t *data);
 static void set_error(async_erluna_t *data, const char *message);
 static void set_result(async_erluna_t *data, ErlDrvTermData *spec, int spec_size);
 static void set_atom(async_erluna_t *data, char *atom);
-static void set_double(async_erluna_t *data, double number);
+static void set_int64(async_erluna_t *data, long long number);
+static void set_float(async_erluna_t *data, double number);
 static void set_string(async_erluna_t *data, const char *string);
 
 static void eval(async_erluna_t *data, const char *lua_source);
@@ -64,10 +65,10 @@ void erluna_dispatch(void *async_handle)
                 return;
             }
 
-            char lua_source[sizeof(size) + 1];
+            char *lua_source = driver_alloc(sizeof(char) * (size + 1));
             ei_decode_string(data->args, &i, lua_source);
-
             eval(data, lua_source);
+            driver_free(lua_source);
             break;
         case COMMAND_GET_GLOBAL:
             if (type != ERL_STRING_EXT) {
@@ -75,10 +76,10 @@ void erluna_dispatch(void *async_handle)
                 return;
             }
 
-            char name[sizeof(size) + 1];
+            char *name = driver_alloc(sizeof(char) * (size + 1));
             ei_decode_string(data->args, &i, name);
-
             get_global(data, name);
+            driver_free(name);
             break;
         default:
             set_error(data, "Command not found.");
@@ -122,36 +123,32 @@ static void set_string(async_erluna_t *data, const char *string)
     set_result(data, spec, sizeof(spec));
 }
 
-static void set_double(async_erluna_t *data, double number)
+static void set_int64(async_erluna_t *data, long long number)
 {
-    int i = 0, size;
-    ei_encode_version(NULL, &i);
-
-    char *buf;
-    if ((long long)number == number) {
-        ei_encode_longlong(NULL, &i, (long long)number);
-        size = i;
-        buf = malloc(sizeof(char) * (size + 1));
-        i = 0;
-        ei_encode_version(buf, &i);
-        ei_encode_longlong(buf, &i, (long long)number);
-    } else {
-        ei_encode_double(NULL, &i, number);
-        buf = malloc(sizeof(char) * (size + 1));
-        i = 0;
-        ei_encode_version(buf, &i);
-        ei_encode_double(buf, &i, number);
-    }
+    long long *p_number = driver_alloc(sizeof(long long));
+    data->free = (void *)p_number;
+    *p_number = number;
 
     ErlDrvTermData spec[] = {
         ERL_DRV_ATOM, driver_mk_atom("ok"),
-            ERL_DRV_ATOM, driver_mk_atom("number"),
-            ERL_DRV_STRING, (ErlDrvTermData)buf, size,
-            ERL_DRV_TUPLE, 2,
+        ERL_DRV_INT64, (ErlDrvTermData)p_number,
         ERL_DRV_TUPLE, 2
     };
     set_result(data, spec, sizeof(spec));
-    free(buf);
+}
+
+static void set_float(async_erluna_t *data, double number)
+{
+    double *p_number = driver_alloc(sizeof(double));
+    data->free = (void *)p_number;
+    *p_number = number;
+
+    ErlDrvTermData spec[] = {
+        ERL_DRV_ATOM, driver_mk_atom("ok"),
+        ERL_DRV_FLOAT, (ErlDrvTermData)p_number,
+        ERL_DRV_TUPLE, 2
+    };
+    set_result(data, spec, sizeof(spec));
 }
 
 static void set_result(async_erluna_t *data, ErlDrvTermData *spec, int spec_size)
@@ -179,6 +176,7 @@ static void get_global(async_erluna_t *data, const char *name)
 {
     lua_getglobal(data->L, name);
 
+    double number;
     switch (lua_type(data->L, -1)) {
         case LUA_TNIL:
             lua_pop(data->L, 1);
@@ -193,8 +191,13 @@ static void get_global(async_erluna_t *data, const char *name)
             lua_pop(data->L, 1);
             break;
         case LUA_TNUMBER:
-            set_double(data, (double)lua_tonumber(data->L, -1));
+            number = (double)lua_tonumber(data->L, -1);
             lua_pop(data->L, 1);
+            if ((long long)number == number) {
+                set_int64(data, (long long)number);
+            } else {
+                set_float(data, number);
+            }
             break;
         case LUA_TSTRING:
             set_string(data, lua_tostring(data->L, -1));

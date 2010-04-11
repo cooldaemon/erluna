@@ -73,6 +73,7 @@ static void output(ErlDrvData handle, char *buf, int len)
     );
     async_data->L    = data->L;
     async_data->args = buf;
+    async_data->free = NULL;
 
     driver_async(data->port, NULL, erluna_dispatch, async_data, free);
 }
@@ -85,6 +86,7 @@ static void ready_async(ErlDrvData handle, ErlDrvThreadData async_handle)
     driver_output_term(data->port, async_data->result, async_data->result_size);
 
     driver_free(async_data->result);
+    driver_free(async_data->free);
     driver_free(async_data);
 }
 

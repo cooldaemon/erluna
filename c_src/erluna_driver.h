@@ -6,6 +6,7 @@ typedef struct {
     char           *args;
     ErlDrvTermData *result;
     int            result_size;
+    void           *free;
 } async_erluna_t;
 
 #endif /* ERLUNA_DRIVER_H */
