@@ -69,9 +69,15 @@ stop(Lua) ->
   erlang:port_close(Lua#erluna.port),
   ok.
 
+receive_data(Lua) ->
+  Port = Lua#erluna.port,
+  receive
+    {Port, {data, Result}} -> binary_to_term(list_to_binary(Result))
+  end.
+
 eval(Source, Lua) ->
   async_eval(Source, Lua),
-  receive Result -> Result end.
+  receive_data(Lua).
 
 async_eval(Source, Lua) ->
   erlang:port_command(
@@ -81,7 +87,7 @@ async_eval(Source, Lua) ->
 
 get_global(Name, Lua) ->
   async_get_global(Name, Lua),
-  receive Result -> Result end.
+  receive_data(Lua).
 
 async_get_global(Name, Lua) ->
   erlang:port_command(

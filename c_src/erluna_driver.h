@@ -4,9 +4,7 @@
 typedef struct {
     lua_State      *L;
     char           *args;
-    ErlDrvTermData *result;
-    int            result_size;
-    void           *free;
+    ei_x_buff      *result;
 } async_erluna_t;
 
 #endif /* ERLUNA_DRIVER_H */

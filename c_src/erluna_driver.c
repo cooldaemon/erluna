@@ -71,9 +71,12 @@ static void output(ErlDrvData handle, char *buf, int len)
     async_erluna_t *async_data = (async_erluna_t *)driver_alloc(
         sizeof(async_erluna_t)
     );
-    async_data->L    = data->L;
-    async_data->args = buf;
-    async_data->free = NULL;
+
+    async_data->L      = data->L;
+    async_data->args   = buf;
+    async_data->result = (ei_x_buff *)driver_alloc(sizeof(ei_x_buff));
+
+    ei_x_new_with_version(async_data->result);
 
     driver_async(data->port, NULL, erluna_dispatch, async_data, free);
 }
@@ -83,10 +86,15 @@ static void ready_async(ErlDrvData handle, ErlDrvThreadData async_handle)
     erluna_t       *data       = (erluna_t *)handle;
     async_erluna_t *async_data = (async_erluna_t *)async_handle;
 
-    driver_output_term(data->port, async_data->result, async_data->result_size);
+    driver_output(
+        data->port,
+        async_data->result->buff,
+        async_data->result->index
+    );
+
+    ei_x_free(async_data->result);
 
     driver_free(async_data->result);
-    driver_free(async_data->free);
     driver_free(async_data);
 }
 
