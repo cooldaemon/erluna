@@ -23,6 +23,7 @@ enum COMMAND {
 static void set_error(async_erluna_t *data, const char *message);
 
 static void eval(async_erluna_t *data, const char *lua_source);
+static void eval_file(async_erluna_t *data, const char *lua_source);
 static void get_global(async_erluna_t *data, const char *name);
 static void set_global(async_erluna_t *data, int *i, const char *name);
 
@@ -68,6 +69,9 @@ void erluna_dispatch(void *async_handle)
         case EVAL:
             eval(data, first_arg);
             break;
+        case EVAL_FILE:
+            eval_file(data, first_arg);
+            break;
         case GET:
             get_global(data, first_arg);
             break;
@@ -92,6 +96,17 @@ static void set_error(async_erluna_t *data, const char *message)
 static void eval(async_erluna_t *data, const char *lua_source)
 {
     if (!luaL_dostring(data->L, lua_source)) {
+        ei_x_encode_atom(data->result, "ok");
+        return;
+    }
+
+    set_error(data, lua_tostring(data->L, -1));
+    lua_pop(data->L, 1);
+}
+
+static void eval_file(async_erluna_t *data, const char *lua_filepath)
+{
+    if (!luaL_dofile(data->L, lua_filepath)) {
         ei_x_encode_atom(data->result, "ok");
         return;
     }

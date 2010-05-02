@@ -36,7 +36,7 @@
 
 -export([start/0, stop/1]).
 -export([eval/2, async_eval/2]).
-%-export([eval_file/2, async_eval_file/2]).
+-export([eval_file/2, async_eval_file/2]).
 %-export([apply/3]).
 -export([get/2, async_get/2, set/3, async_set/3]).
 
@@ -83,6 +83,16 @@ async_eval(Source, Lua) ->
   erlang:port_command(
     Lua#erluna.port,
     term_to_binary({?COMMAND_EVAL, Source})
+  ).
+
+eval_file(Path, Lua) ->
+  async_eval_file(Path, Lua),
+  receive_data(Lua).
+
+async_eval_file(Path, Lua) ->
+  erlang:port_command(
+    Lua#erluna.port,
+    term_to_binary({?COMMAND_EVAL_FILE, Path})
   ).
 
 get(Name, Lua) ->
