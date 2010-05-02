@@ -9,11 +9,11 @@
 %%    {ok, Lua} = erluna:start(),
 %%
 %%    ok = Lua:eval("lua_value1 = 1 + 1"),
-%%    {ok, 2} = Lua:get_global("lua_value1"),
+%%    {ok, 2} = Lua:get("lua_value1"),
 %%
 %%    ok = Lua:eval("function lua_fun(x) return x * 2 end"),
 %%    ok = Lua:eval("lua_value2 = lua_fun(5)"),
-%%    {ok, 10} = Lua:get_global("lua_value2"),
+%%    {ok, 10} = Lua:get("lua_value2"),
 %%
 %%    ok = Lua:stop().
 %%  '''
@@ -38,7 +38,7 @@
 -export([eval/2, async_eval/2]).
 %-export([eval_file/2, async_eval_file/2]).
 %-export([apply/3]).
--export([get_global/2, async_get_global/2]).
+-export([get/2, async_get/2, set/3, async_set/3]).
 
 -include("erluna.hrl").
 
@@ -85,13 +85,23 @@ async_eval(Source, Lua) ->
     term_to_binary({?COMMAND_EVAL, Source})
   ).
 
-get_global(Name, Lua) ->
-  async_get_global(Name, Lua),
+get(Name, Lua) ->
+  async_get(Name, Lua),
   receive_data(Lua).
 
-async_get_global(Name, Lua) ->
+async_get(Name, Lua) ->
   erlang:port_command(
     Lua#erluna.port,
-    term_to_binary({?COMMAND_GET_GLOBAL, Name})
+    term_to_binary({?COMMAND_GET, Name})
+  ).
+
+set(Name, Value, Lua) ->
+  async_set(Name, Value, Lua),
+  receive_data(Lua).
+
+async_set(Name, Value, Lua) ->
+  erlang:port_command(
+    Lua#erluna.port,
+    term_to_binary({?COMMAND_SET, Name, Value})
   ).
 

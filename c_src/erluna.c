@@ -12,15 +12,19 @@
 #include "erluna_driver.h"
 #include "erluna_term.h"
 
-#define COMMAND_EVAL       1
-#define COMMAND_EVAL_FILE  2
-#define COMMAND_APPLY      3
-#define COMMAND_GET_GLOBAL 4
+enum COMMAND {
+    EVAL,
+    EVAL_FILE,
+    APPLY,
+    GET,
+    SET
+};
 
 static void set_error(async_erluna_t *data, const char *message);
 
 static void eval(async_erluna_t *data, const char *lua_source);
 static void get_global(async_erluna_t *data, const char *name);
+static void set_global(async_erluna_t *data, int *i, const char *name);
 
 void erluna_dispatch(void *async_handle)
 {
@@ -52,38 +56,30 @@ void erluna_dispatch(void *async_handle)
     ei_decode_char(data->args, &i, &command);
 
     ei_get_type(data->args, &i, &type, &size);
+    if (type != ERL_STRING_EXT) {
+        set_error(data, "Arguments type error.");
+        return;
+    }
+
+    char *first_arg = driver_alloc(sizeof(char) * (size + 1));
+    ei_decode_string(data->args, &i, first_arg);
 
     switch (command) {
-        case COMMAND_EVAL:
-        {
-            if (type != ERL_STRING_EXT) {
-                set_error(data, "Arguments type error.");
-                return;
-            }
-
-            char *lua_source = driver_alloc(sizeof(char) * (size + 1));
-            ei_decode_string(data->args, &i, lua_source);
-            eval(data, lua_source);
-            driver_free(lua_source);
+        case EVAL:
+            eval(data, first_arg);
             break;
-        }
-        case COMMAND_GET_GLOBAL:
-        {
-            if (type != ERL_STRING_EXT) {
-                set_error(data, "Arguments type error.");
-                return;
-            }
-
-            char *name = driver_alloc(sizeof(char) * (size + 1));
-            ei_decode_string(data->args, &i, name);
-            get_global(data, name);
-            driver_free(name);
+        case GET:
+            get_global(data, first_arg);
             break;
-        }
+        case SET:
+            set_global(data, &i, first_arg);
+            break;
         default:
             set_error(data, "Command not found.");
             break;
     }
+
+    driver_free(first_arg);
 }
 
 static void set_error(async_erluna_t *data, const char *message)
@@ -111,5 +107,16 @@ static void get_global(async_erluna_t *data, const char *name)
     lua_getglobal(data->L, name);
     lua_to_erlang(data, -1);
     lua_pop(data->L, 1);
+}
+
+static void set_global(async_erluna_t *data, int *index, const char *name)
+{
+    if (erlang_to_lua(data, index)) {
+        lua_setglobal(data->L, name);
+        ei_x_encode_atom(data->result, "ok");
+    } else {
+        lua_settop(data->L, 0); // clean up
+        set_error(data, "Can't set value.");
+    }
 }
 

@@ -14,8 +14,9 @@
 
 -define(DRIVER_NAME, "erluna_drv").
 
--define(COMMAND_EVAL, 1).
--define(COMMAND_EVAL_FILE, 2).
--define(COMMAND_APPLY, 3).
--define(COMMAND_GET_GLOBAL, 4).
+-define(COMMAND_EVAL, 0).
+-define(COMMAND_EVAL_FILE, 1).
+-define(COMMAND_APPLY, 2).
+-define(COMMAND_GET, 3).
+-define(COMMAND_SET, 4).
 
