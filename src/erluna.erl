@@ -40,6 +40,7 @@
 -export([apply/3, async_apply/3]).
 -export([get/2, async_get/2]).
 -export([set/3, async_set/3]).
+-export([receive_data/1]).
 
 -include("erluna.hrl").
 

@@ -1,1 +1,1 @@
-ERLUNA=0.9.1
+ERLUNA=0.9.2
