@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h> # memcpy
 
 #include "ei.h"
 #include "erl_driver.h"
@@ -73,9 +74,11 @@ static void output(ErlDrvData handle, char *buf, int len)
     );
 
     async_data->L      = data->L;
-    async_data->args   = buf;
-    async_data->result = (ei_x_buff *)driver_alloc(sizeof(ei_x_buff));
 
+    async_data->args   = driver_alloc(len);
+    memcpy(async_data->args, buf, len);
+
+    async_data->result = (ei_x_buff *)driver_alloc(sizeof(ei_x_buff));
     ei_x_new_with_version(async_data->result);
 
     driver_async(data->port, NULL, erluna_dispatch, async_data, free);
@@ -95,6 +98,7 @@ static void ready_async(ErlDrvData handle, ErlDrvThreadData async_handle)
     ei_x_free(async_data->result);
 
     driver_free(async_data->result);
+    driver_free(async_data->args);
     driver_free(async_data);
 }
 

@@ -33,7 +33,7 @@ void erluna_dispatch(void *async_handle)
     async_erluna_t *data = (async_erluna_t *)async_handle;
 
     int i = 0, ver;
-    if (0 != ei_decode_version(data->args, &i, &ver)) {
+    if (ei_decode_version(data->args, &i, &ver) < 0) {
         set_error(data, "Can't decode arguments.");
         return;
     }
