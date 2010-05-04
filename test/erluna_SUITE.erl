@@ -22,7 +22,7 @@
 -include("ct.hrl").
 -include("erluna_test.hrl").
 
-all() -> [test_set, test_eval].
+all() -> [test_set, test_eval, test_apply].
 
 test_set() -> [].
 test_set(_Conf) ->
@@ -73,6 +73,19 @@ test_eval(_Conf) ->
   ?assertMatch(Lua:eval("function lua_fun(x) return x * 2 end"), ok, eval_function1),
   ?assertMatch(Lua:eval("lua_value4 = lua_fun(5)"), ok, eval_function2),
   ?assertMatch(Lua:get("lua_value4"), {ok, 10}, get_function),
+
+  ?assertMatch(Lua:stop(), ok, stop),
+  ok.
+
+test_apply() -> [].
+test_apply(_Conf) ->
+  {ok, Lua} = erluna:start(),
+  
+  ?assertMatch(Lua:eval("function echo(a, b) return a, b end"), ok, eval_echo),
+  ?assertMatch(Lua:apply("echo", {1, 2}), {ok, [1, 2]}, apply_echo),
+
+  ?assertMatch(Lua:eval("function hello() print [[hello]] end"), ok, eval_hello),
+  ?assertMatch(Lua:apply("hello", {}), {ok, []}, apply_hello),
 
   ?assertMatch(Lua:stop(), ok, stop),
   ok.

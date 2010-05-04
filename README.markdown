@@ -14,7 +14,14 @@ erluna is Lua bindings for Erlang.
     ok = Lua:eval("function lua_fun(x) return x * 2 end"),
     ok = Lua:eval("lua_value2 = lua_fun(5)"),
     {ok, 10} = Lua:get("lua_value2"),
+
     ok = Lua:set("lua_value3", [1, {foo, bar}, 3]),
     {ok, [{1, 1}, {2, 3}, {"foo", "bar"}]} = Lua:get("lua_value3"),
+
+    ok = Lua:eval_file("/path/to/foo.lua"),
+
+    ok = Lua:eval("function echo(a, b) return a, b end"),
+    {ok, ["foo", "bar"]} = Lua:apply("echo", {foo, "bar"}),
+
     Lua:stop().
 

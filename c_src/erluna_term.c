@@ -86,7 +86,6 @@ static void lua_to_table(async_erluna_t *data, int index)
         arity++;
         lua_pop(data->L, 1);
     }
-//    printf("arity %d\n", arity); fflush(stdout);
 
     ei_x_encode_list_header(data->result, arity);
 
